@@ -10,25 +10,61 @@ import java.io.ObjectOutputStream;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
+
+import org.omg.CORBA.PUBLIC_MEMBER;
+
 import java.awt.Color;
 import java.awt.Font;
 
-public class Server extends JFrame {
-	private JPanel contentPane;
-	
-	private ObjectOutputStream output;
-	private ObjectInputStream input;
-	private ServerSocket server;
+public class Serverr extends JFrame {
 	private Socket connection;
-	private JTextField userText;
-	private JTextArea chatWindow;
-	private JScrollPane scrollPane;
-
+	private ReadFile registeredUsers = new ReadFile();
+	public static int workerThreadCount = 0;
 	/**
 	 * Create the frame.
 	 */
-	public Server() {
-		super("Q-Messanger: SERVER");
+	public Serverr() {
+		
+	}
+	
+	
+	public static void main(String[] args) {
+		int id = 1;
+		Serverr S = new Serverr();
+		ServerSocket server;
+		try {
+			while(true){
+				server = new ServerSocket(6789, 100);
+				// wait for connection, then display connection information
+				S.connection = server.accept();
+				WorkerThread wt = new WorkerThread(S.connection, id);
+				Thread t = new Thread(wt);
+				t.start();
+				workerThreadCount++;
+				System.out.println("Client ["+id+"]"+" is now connected to "+S.connection.getInetAddress().getHostName());
+				id++;
+			}
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+}
+
+
+class WorkerThread extends Serverr implements Runnable{
+	public JPanel contentPane;
+	public JTextArea chatWindow;
+	public JScrollPane scrollPane;
+	private ObjectOutputStream output;
+	private ObjectInputStream input;
+	private Socket connection;
+	private ReadFile registeredUsers = new ReadFile();
+	
+	private int id = 0;
+	
+	public WorkerThread(Socket connection, int id)
+	{
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		setBounds(100, 100, 450, 300);
 		contentPane = new JPanel();
@@ -36,29 +72,8 @@ public class Server extends JFrame {
 		setContentPane(contentPane);
 		contentPane.setLayout(null);
 		
-		userText = new JTextField();
-		userText.setFont(new Font("CMU Typewriter Text", Font.PLAIN, 20));
-		userText.setBackground(Color.WHITE);
-		userText.setBounds(21, 203, 390, 47);
-		contentPane.add(userText);
-		userText.setColumns(10);
-		userText.setEditable(false);
-		userText.addActionListener(
-			new ActionListener(){
-				public void actionPerformed(ActionEvent event){
-					try {
-						sendMessage(event.getActionCommand());
-					} catch (IOException ioException) {
-						// TODO Auto-generated catch block
-						ioException.printStackTrace();
-					}
-					userText.setText("");
-				}
-			}
-		);
-		
 		scrollPane = new JScrollPane();
-		scrollPane.setBounds(21, 11, 390, 181);
+		scrollPane.setBounds(21, 11, 390, 239);
 		contentPane.add(scrollPane);
 		
 		chatWindow = new JTextArea();
@@ -69,17 +84,32 @@ public class Server extends JFrame {
 		chatWindow.setBackground(Color.LIGHT_GRAY);
 		
 		setVisible(true);
+		
+		
+		
+		this.connection = connection;
+		
+		try
+		{
+			output = new ObjectOutputStream(connection.getOutputStream());
+			output.flush();
+			input = new ObjectInputStream(connection.getInputStream());
+			showMessage("\n Streams are now good to go! \n");
+		}
+		catch(Exception e)
+		{
+			System.err.println("Sorry. Cannot manage client [" + id + "] properly.");
+		}
+		
+		this.id = id;
 	}
-	
-	
-	public void startRunning(){
+
+	@Override
+	public void run() {
+		// TODO Auto-generated method stub
 		try {
-			server = new ServerSocket(6789, 100);
 			while(true){
 				try {
-					// connect and have converstaion
-					waitForConnection();
-					setupStreams();
 					whileChatting();
 				} catch (EOFException eofException) {
 					// TODO: handle exception
@@ -92,15 +122,6 @@ public class Server extends JFrame {
 			ioException.printStackTrace();
 		}
 	}
-
-
-	// wait for connection, then display connection information
-	private void waitForConnection() throws IOException{
-		showMessage("Waiting for someone to connect.... \n");
-		connection = server.accept();
-		showMessage("Now connected to "+connection.getInetAddress().getHostName());
-	}
-	
 	
 	//get stream to send and recieve data
 	private void setupStreams() throws IOException{
@@ -115,35 +136,36 @@ public class Server extends JFrame {
 	private void whileChatting() throws IOException{
 		String message = "You are now Connected! ";
 		sendMessage(message);
-		ableToType(true);
+		boolean first = false;
 		do{
 			// have a conversation
 			try {
 				message = (String) input.readObject();
-				showMessage("\n"+message);
+				if(first == false){
+					if(message.indexOf('#')!=-1){
+						registeredUsers.writeFile(message.substring(9));
+						sendMessage("%REGISTERED%");
+						showMessage("\n"+message);
+					}
+					else if(message.indexOf('$')!=-1){
+						if(registeredUsers.readFile(message.substring(9))==1){
+							sendMessage("$APPROVED$");
+							first = true;
+						}
+						else sendMessage("$WRONG Username or Password$");
+					}
+				}
+				else showMessage("\n"+message);
 			} catch (ClassNotFoundException classNotFoundException) {
 				showMessage("\n IDK WTF that user sent! :| \n");
 			}
 		}while(!message.equals("CLIENT: END"));
-	}
-	
-	
-	//Turn the text field editable
-	private void ableToType(final boolean b) {
-		SwingUtilities.invokeLater(
-			new Runnable() {
-				public void run() {
-					userText.setEditable(b);
-				}
-			}
-		);
 	}
 
 
 	//Closing All the streams and sockets after you are done chatting
 	private void closeCrap() {
 		showMessage("\n Closing Connections... \n");
-		ableToType(false);
 		try {
 			output.close();
 			input.close();
@@ -157,7 +179,8 @@ public class Server extends JFrame {
 	//Send message to client
 	private void sendMessage(String message) throws IOException{
 		try {
-			output.writeObject("SERVER: " + message);
+			if(message.equals("$APPROVED$") || message.equals("$WRONG Username or Password$") || message.equals("$REGISTERED$")) output.writeObject(message);
+			else output.writeObject("SERVER: " + message);
 			output.flush();
 			showMessage("\nSERVER: " + message);
 		} catch (IOException ioException) {
@@ -167,7 +190,7 @@ public class Server extends JFrame {
 
 	
 	//Show message on the text area
-	private void showMessage(final String text) {
+	public void showMessage(final String text) {
 		SwingUtilities.invokeLater(
 			new Runnable() {
 				public void run() {
@@ -175,5 +198,5 @@ public class Server extends JFrame {
 				}
 			}
 		);
-	}
+	}	
 }
