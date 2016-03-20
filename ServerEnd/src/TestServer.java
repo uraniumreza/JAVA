@@ -94,13 +94,36 @@ class WorkerThread implements Runnable {
 								String arr[] = temp.split(" ", 2);
 								if (arr[0] != null)
 									TestServer.onlineUsers[id] = arr[0];
-
+								
+								ReadFile r = new ReadFile();
+								String temp2 = new String();
+								temp2 = r.offlineMessageRead(TestServer.onlineUsers[id]);
+								pr.println("|" + temp2);
+								pr.flush();
+								
+								
 								for (int i = 0; i <= id; i++) {
 									if (TestServer.onlineUsers[i] != null) {
 										pr.println("@" + TestServer.onlineUsers[i]);
 										pr.flush();
 									}
 								}
+								
+								pr.println("@LL");
+								pr.flush();
+								
+								ReadFile reader = new ReadFile(TestServer.onlineUsers[id]);
+								reader.allFriends();
+								for(int i=0;i<reader.noOfFriends;i++){
+									if (reader.allFriends[i] != null) {
+										pr.println(reader.allFriends[i]);
+										pr.flush();
+									}
+								}
+								
+								pr.println("WLL");
+								pr.flush();
+								
 								loggedIn = true;
 							} else {
 								pr.println("$WRONG Username or Password$");
@@ -114,6 +137,28 @@ class WorkerThread implements Runnable {
 						frnds1.addFriend(str);
 						ReadFile frnds2 = new ReadFile(str);
 						frnds2.addFriend(TestServer.onlineUsers[id]);
+						
+						pr.println("@LL");
+						pr.flush();
+						
+						ReadFile reader = new ReadFile(TestServer.onlineUsers[id]);
+						reader.allFriends();
+						for(int i=0;i<reader.noOfFriends;i++){
+							if (reader.allFriends[i] != null) {
+								pr.println(reader.allFriends[i]);
+								pr.flush();
+							}
+						}
+						
+						pr.println("WLL");
+						pr.flush();
+					}
+					if(str.indexOf("}") != -1){
+						String temp = str.substring(1);
+						ReadFile r = new ReadFile();
+						r.offlineMessageWrite(temp);
+						pr.println("{");
+						pr.flush();
 					}
 					if(str.indexOf("|") != -1){
 						boolean sent = false;

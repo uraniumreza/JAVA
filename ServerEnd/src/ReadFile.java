@@ -7,14 +7,83 @@ import java.io.IOException;
 
 public class ReadFile {
 	private File file;
+	public String[] allFriends = new String[100];
+	public int noOfFriends;
 	public ReadFile(String fileName) {
 		String temp0 = new String();
-		temp0 = "C:\\Users\\Nayeem Reza\\Documents\\JAVA\\Server-Messenger\\src\\" + fileName + ".txt";
+		temp0 = "C:\\Users\\Nayeem Reza\\Documents\\JAVA\\ServerEnd\\src\\" + fileName + ".txt";
 		file = new File(temp0);
 	}
 	
 	public ReadFile() {
 		
+	}
+	
+	public void offlineMessageWrite(String a){
+		file = new File("C:\\Users\\Nayeem Reza\\Documents\\JAVA\\ServerEnd\\src\\offlineMSG.txt");
+		try (FileWriter fw = new FileWriter(file, true)) {
+			fw.write(a + "\n"); // appends the string to the file
+		} catch (Exception e) {
+			System.out.println("Cannot create a File Writer!");
+		}
+	}
+	
+	public String offlineMessageRead(String name){
+		String temp = null;
+		file = new File("C:\\Users\\Nayeem Reza\\Documents\\JAVA\\ServerEnd\\src\\offlineMSG.txt");
+		
+		StringBuilder stringBuilder = null;
+		try {
+			BufferedReader reader = new BufferedReader(new FileReader(file));
+			String line = null;
+			stringBuilder = new StringBuilder();
+			String ls = System.getProperty("line.separator");
+
+			try {
+				while ((line = reader.readLine()) != null) {
+					String arr[] = line.split(" ", 3);
+					if (name.toUpperCase().equals(arr[0].toUpperCase())) {
+						 temp = new String();
+						 temp = line;
+						 line = "";
+					}
+					stringBuilder.append(line);
+					stringBuilder.append(ls);
+				}
+			} catch (IOException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			}
+			
+			try (FileWriter fw = new FileWriter(file, false)) {
+				fw.write(stringBuilder.toString()); // appends the string to the file
+			} catch (Exception e) {
+				System.out.println("Cannot create a File Writer!");
+			}
+			
+			System.out.println(stringBuilder.toString());
+			
+			
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		return temp;
+	}
+	
+	public void allFriends(){
+		noOfFriends = 0;
+		try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
+			System.out.println("All Friends List Nicchi...");
+			String line;
+			while ((line = reader.readLine()) != null) {
+				String arr[] = line.split(" ", 2);
+				allFriends[noOfFriends++] = arr[0];
+			}
+		} catch (Exception e) {
+			System.out.println("Cannot create a Buffer Reader!");
+		}
 	}
 
 	public void addFriend(String name) {
@@ -82,7 +151,6 @@ public class ReadFile {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		
 	}
 	
 	public int readFile(String a) {

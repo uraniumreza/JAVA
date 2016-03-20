@@ -6,6 +6,8 @@ import java.io.IOException;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
+import javax.xml.ws.handler.MessageContext;
+
 import java.awt.Color;
 import java.awt.Font;
 import java.awt.SystemColor;
@@ -52,6 +54,7 @@ public class Clientt extends JFrame {
 	DefaultListModel<String> anonymous = new DefaultListModel<String>();
 	DefaultListModel<String> frndRqst = new DefaultListModel<String>();
 	DefaultListModel<String> onlineFrnds = new DefaultListModel<String>();
+	DefaultListModel<String> allFrnds = new DefaultListModel<String>();
 
 	/**
 	 * Create the frame.
@@ -172,7 +175,8 @@ public class Clientt extends JFrame {
 		logOut.setEnabled(false);
 		contentPane.add(logOut);
 
-		list = new JList();
+		list = new JList(allFrnds);
+		list.setFont(new Font("cmr10", Font.PLAIN, 15));
 		list.setEnabled(false);
 		list.setBackground(SystemColor.activeCaption);
 		list.setBounds(431, 276, 206, 197);
@@ -199,7 +203,7 @@ public class Clientt extends JFrame {
 		btnSendMsg.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) {
 				try {
-					sendMessage("|"+list_1.getSelectedValue().toUpperCase()+" "+userText.getText(), '1');
+					sendMessage("|" + list_1.getSelectedValue().toUpperCase() + " " + userText.getText(), '1');
 				} catch (IOException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
@@ -318,6 +322,16 @@ public class Clientt extends JFrame {
 		contentPane.add(separator_2);
 
 		button = new JButton("SEND MSG");
+		button.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				try {
+					sendMessage("}" + list.getSelectedValue().toUpperCase() + " " + name.toUpperCase() + " " + userText.getText() + "\n", '1');
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+		});
 		button.setEnabled(false);
 		button.setBounds(431, 481, 97, 32);
 		contentPane.add(button);
@@ -392,11 +406,33 @@ public class Clientt extends JFrame {
 				continue;
 			// message = "Ami message dekhate pari na keno!";
 			System.out.println("paichi mamma: " + message);
-			
-			if(message.indexOf("|") != -1){
+
+			if (message.indexOf("|") != -1) {
 				String temp = message.substring(1);
 				temp = "\n" + temp;
 				showMessage(temp);
+			} else if(message.equals("{")){
+				showMessage("\nOffline MessageContext Sent...\n");
+			} else if (message.equals("@LL")) {
+				allFrnds.removeAllElements();
+				noOfAllFriends = 0;
+				while (message != null) {
+					message = (String) br.readLine();
+					if (message.equals("WLL"))
+						break;
+					System.out.println("FRIEND: " + message);
+					allFrnds.addElement(message);
+					noOfAllFriends++;
+				}
+				if (noOfAllFriends > 0) {
+					list.setEnabled(true);
+					button.setEnabled(true);
+					button_2.setEnabled(true);
+				} else {
+					list.setEnabled(false);
+					button.setEnabled(false);
+					button_2.setEnabled(false);
+				}
 			} else if (message.equals("$APPROVED$")) {
 				name = (String) userName.getText();
 				ableToType(true);
@@ -492,7 +528,7 @@ public class Clientt extends JFrame {
 				}
 			} else if (message != null)
 				showMessage("\n" + message);
-		} while (message!=null && !message.equals("SERVER: END"));
+		} while (message != null && !message.equals("SERVER: END"));
 	}
 
 	// Turn the text field editable
@@ -550,16 +586,18 @@ public class Clientt extends JFrame {
 	// Send message to Server
 	private void sendMessage(String message, char mode) throws IOException {
 		if (mode == 's') {
-			pr.println("CLIENT: #" + message+"\n");
+			pr.println("CLIENT: #" + message + "\n");
 			pr.flush();
 		} else if (mode == 'l') {
-			pr.println("CLIENT: $" + message+"\n");
+			pr.println("CLIENT: $" + message + "\n");
 			pr.flush();
 		} else {
 			pr.println(message);
 			pr.flush();
-			if(name == null) showMessage("\nCLIENT: " + message);
-			else showMessage("\n"+ name.toUpperCase() + message);
+			if (name == null)
+				showMessage("\nCLIENT: " + message);
+			else
+				showMessage("\n" + name.toUpperCase() + message);
 		}
 	}
 
