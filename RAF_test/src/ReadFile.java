@@ -1,106 +1,104 @@
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 
-public class ReadWriteUpdate {
-	private final int RECORD = 20;
+public class ReadFile {
+	// private final int RECORD = 24;
+	private File file;
 
 	public static void main(String[] args) {
-		// TODO Auto-generated method stub
-		ReadWriteUpdate obj = new ReadWriteUpdate();
-		//obj.writeInFile();
-		obj.readFromFile();
-		obj.updateInFile();
-	}
+		ReadFile rf = new ReadFile("DONE");
 
-	public void writeInFile() {
-		RandomAccessFile file;
-		byte status = 0;
-		String name = new String("Mottakin");
-		String fileName = new String(
-				"C:\\Users\\Nayeem Reza\\Documents\\JAVA\\RAF_test\\src" + "Foysal" + ".txt");
 		try {
-			file = new RandomAccessFile(new File(fileName), "rw");
-			long fileSize = file.length();
-			file.seek(fileSize);
-			file.writeUTF(name);
-			for (int i = 0; i < 19 - name.length(); i++) {
-				file.writeByte(19);
-			}
-			file.write(status);
-
-			file.close();
+			rf.markOnlineOffline("Foysal", 0);
 		} catch (IOException e) {
-			System.out.println("Cannot Write!");
-		}
-	}
-	
-	public void readFromFile(){
-		RandomAccessFile file;
-		String fileName = new String(
-				"C:\\Users\\Nayeem Reza\\Documents\\JAVA\\RAF_test\\src" + "Foysal" + ".txt");
-		String n = null;
-		String name = new String("Uranium");
-		try {
-			file = new RandomAccessFile(new File(fileName), "rw");
-			long fileSize = file.length();
-			file.seek(0);
-			long noOfRecords = fileSize / RECORD;
-			System.out.println("No of Records: "+noOfRecords);
-			for (int j = 0; j < noOfRecords; j++) {
-				n = file.readUTF();
-				for (int i = 0; i < 19 - n.length(); i++) {
-					file.readByte();
-				}
-				byte s = file.readByte();
-				System.out.println("STATUS:" + s);
-
-				if (name.equals(n)) {
-					System.out.println("Name: "+n+" Status: "+s);
-				}
-			}
-
-			file.close();
-		} catch (IOException e) {
-			System.out.println("Cannot Read!");
-		}
-	}
-	
-	public void updateInFile(){
-		RandomAccessFile file1, file2;
-		String fileName = new String(
-				"C:\\Users\\Nayeem Reza\\Documents\\JAVA\\RAF_test\\src" + "Foysal" + ".txt");
-		String n = new String("");
-		byte status = 1;
-		String name = new String("Uranium");
-		try {
-			file1 = new RandomAccessFile(new File(fileName), "rw");
-			file2 = new RandomAccessFile(new File(fileName), "rw");
-			long fileSize = file1.length();
-			file1.seek(0);
-			long noOfRecords = fileSize / RECORD;
-			System.out.println("No of Records: "+noOfRecords);
-			for (int j = 0; j < noOfRecords; j++) {
-				n = file1.readUTF();
-				for (int i = 0; i < 19 - n.length(); i++) {
-					file1.readByte();
-				}
-				byte s = file1.readByte();
-				System.out.println("STATUS:" + s);
-
-				if (name.equals(n)) {
-					file2.seek(RECORD*j+21);
-					file2.write(status);
-				}
-			}
-			file1.close();
-			file2.close();
-			System.out.println(">>>>>>>>>>>>>>>");
-		} catch (IOException e) {
-			System.out.println("Cannot Update!");
+			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		
+	}
+
+	public ReadFile(String fileName) {
+		String temp0 = new String();
+		temp0 = "C:\\Users\\Nayeem Reza\\Documents\\JAVA\\RAF_test\\src\\" + fileName + ".txt";
+		file = new File(temp0);
+	}
+
+	public ReadFile() {
+
+	}
+
+	public void addFriend(String name) {
+		try (FileWriter fw = new FileWriter(file, true)) {
+			fw.write(name + " 1\n"); // appends the string to the file
+		} catch (Exception e) {
+			System.out.println("Cannot create a File Writer!");
+		}
+	}
+
+	public void markOnlineOffline(String name, int status) throws IOException {
+		StringBuilder stringBuilder = null;
+		try {
+			BufferedReader reader = new BufferedReader(new FileReader(file));
+			String line = null;
+			stringBuilder = new StringBuilder();
+			String ls = System.getProperty("line.separator");
+
+			while ((line = reader.readLine()) != null) {
+				String arr[] = line.split(" ", 2);
+				if (name.equals(arr[0])) {
+					int n = line.length();
+					if (line != null && line.length() > 0) {
+						line = line.substring(0, line.length() - 1);
+						line = line + status;
+					}
+				}
+				stringBuilder.append(line);
+				stringBuilder.append(ls);
+			}
+			
+			try (FileWriter fw = new FileWriter(file, false)) {
+				fw.write(stringBuilder.toString()); // appends the string to the file
+			} catch (Exception e) {
+				System.out.println("Cannot create a File Writer!");
+			}
+			
+			System.out.println(stringBuilder.toString());
+
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+
+	public int readFile(String a) {
+		System.out.println(a);
+		try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
+			System.out.println("Ami Registered User der read kortechi...");
+			String line;
+			line = reader.readLine();
+			System.out.println(line);
+			while ((line = reader.readLine()) != null) {
+				System.out.println(line);
+				if (a.equals(line)) {
+					return 1;
+				}
+			}
+		} catch (Exception e) {
+			System.out.println("Cannot create a Buffer Reader!");
+		}
+		return 0;
+	}
+
+	public void writeFile(String a) {
+		try (FileWriter fw = new FileWriter(file, true)) {
+			fw.write(a + "\n"); // appends the string to the file
+		} catch (Exception e) {
+			System.out.println("Cannot create a File Writer!");
+		}
 	}
 
 }

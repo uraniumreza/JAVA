@@ -1,12 +1,8 @@
 import java.io.*;
 import java.net.*;
-import java.awt.BorderLayout;
-import java.awt.EventQueue;
 import java.awt.event.*;
 import java.io.EOFException;
 import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -14,13 +10,15 @@ import java.awt.Color;
 import java.awt.Font;
 import java.awt.SystemColor;
 
+@SuppressWarnings("serial")
 public class Clientt extends JFrame {
 	private String[] onlineAnonymousUsers = new String[100];
 	private String[] friendRequests = new String[100];
-	private String[] offlineFriends = new String[100];
+	@SuppressWarnings("unused")
+	private String[] allFriends = new String[100];
 	private String[] onlineFriends = new String[100];
 	int noOfOnlineFriends = 0;
-	int noOfOfflineFriends = 0;
+	int noOfAllFriends = 0;
 	int noOfFriendRequests = 0;
 	int noOfAnonymousUsers = 0;
 	private String name;
@@ -30,7 +28,7 @@ public class Clientt extends JFrame {
 	private Socket connection;
 	private JTextField userText;
 	private JTextArea chatWindow;
-	private String message = "";
+	private String message = null;
 	private String serverIP;
 	private JScrollPane scrollPane;
 	private JTextField userName;
@@ -43,11 +41,17 @@ public class Clientt extends JFrame {
 	private JList<String> list_2;
 	private JButton btnSendFriendrequest;
 	private JButton btnRefresh;
+	private JButton button_2;
+	private JButton button;
 	private JButton btnReject;
 	private JButton btnAccept;
+	private JButton btnSendMsg;
+	private JList<String> list;
 	private JList<String> list_3;
+	private JList<String> list_1;
 	DefaultListModel<String> anonymous = new DefaultListModel<String>();
 	DefaultListModel<String> frndRqst = new DefaultListModel<String>();
+	DefaultListModel<String> onlineFrnds = new DefaultListModel<String>();
 
 	/**
 	 * Create the frame.
@@ -111,7 +115,7 @@ public class Clientt extends JFrame {
 		lblPassword.setBounds(432, 573, 74, 14);
 		contentPane.add(lblPassword);
 
-		JButton logIn = new JButton("LOG IN");
+		logIn = new JButton("LOG IN");
 		logIn.addActionListener(new ActionListener() {
 			@SuppressWarnings("deprecation")
 			public void actionPerformed(ActionEvent e) {
@@ -168,7 +172,7 @@ public class Clientt extends JFrame {
 		logOut.setEnabled(false);
 		contentPane.add(logOut);
 
-		JList<String> list = new JList();
+		list = new JList();
 		list.setEnabled(false);
 		list.setBackground(SystemColor.activeCaption);
 		list.setBounds(431, 276, 206, 197);
@@ -179,7 +183,8 @@ public class Clientt extends JFrame {
 		lblFriends.setBounds(484, 260, 153, 14);
 		contentPane.add(lblFriends);
 
-		JList<String> list_1 = new JList();
+		list_1 = new JList(onlineFrnds);
+		list_1.setFont(new Font("cmr10", Font.PLAIN, 15));
 		list_1.setEnabled(false);
 		list_1.setBackground(SystemColor.activeCaption);
 		list_1.setBounds(431, 25, 206, 181);
@@ -190,12 +195,26 @@ public class Clientt extends JFrame {
 		lblActiveFriends.setBounds(457, 11, 180, 14);
 		contentPane.add(lblActiveFriends);
 
-		JButton btnSendMsg = new JButton("SEND MSG");
+		btnSendMsg = new JButton("SEND MSG");
+		btnSendMsg.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				try {
+					sendMessage("|"+list_1.getSelectedValue().toUpperCase()+" "+userText.getText(), '1');
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+		});
 		btnSendMsg.setEnabled(false);
 		btnSendMsg.setBounds(431, 217, 97, 32);
 		contentPane.add(btnSendMsg);
 
 		JButton button_1 = new JButton("SEND FILE");
+		button_1.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+			}
+		});
 		button_1.setEnabled(false);
 		button_1.setBounds(540, 217, 96, 32);
 		contentPane.add(button_1);
@@ -298,12 +317,12 @@ public class Clientt extends JFrame {
 		separator_2.setBounds(215, 524, 226, 2);
 		contentPane.add(separator_2);
 
-		JButton button = new JButton("SEND MSG");
+		button = new JButton("SEND MSG");
 		button.setEnabled(false);
 		button.setBounds(431, 481, 97, 32);
 		contentPane.add(button);
 
-		JButton button_2 = new JButton("SEND FILE");
+		button_2 = new JButton("SEND FILE");
 		button_2.setEnabled(false);
 		button_2.setBounds(540, 481, 96, 32);
 		contentPane.add(button_2);
@@ -365,15 +384,20 @@ public class Clientt extends JFrame {
 
 	// during the chat conversation
 	private void whileChatting() throws IOException {
-		String message = "You are now Connected! ";
+		message = "You are now Connected! ";
 		sendMessage(message, '1');
 		do {
 			message = (String) br.readLine();
-			// message = "Ami message dekhate pari na keno!";
-			System.out.println("paichi mamma: " + message);
 			if (message == null)
 				continue;
-			if (message.equals("$APPROVED$")) {
+			// message = "Ami message dekhate pari na keno!";
+			System.out.println("paichi mamma: " + message);
+			
+			if(message.indexOf("|") != -1){
+				String temp = message.substring(1);
+				temp = "\n" + temp;
+				showMessage(temp);
+			} else if (message.equals("$APPROVED$")) {
 				name = (String) userName.getText();
 				ableToType(true);
 				logInEditable(false);
@@ -387,14 +411,25 @@ public class Clientt extends JFrame {
 				showMessage("\n" + message);
 			} else if (message.equals("<<")) {
 				noOfAnonymousUsers = 0;
+				noOfOnlineFriends = 0;
 				while (true) {
 					message = br.readLine();
 					if (message != null) {
 						try {
 							if (message.equals(">>"))
 								break;
-							if (!name.equals(message))
-								onlineAnonymousUsers[noOfAnonymousUsers++] = message;
+							System.out.println("-----------------" + message);
+							String arr[] = message.split(" ", 2);
+							System.out.println("+++++++++++++++++" + arr[0]);
+							if (!arr[0].equals(name)) {
+								if (arr[1].equals("0")) {
+									onlineAnonymousUsers[noOfAnonymousUsers++] = arr[0];
+								} else {
+									System.out.println("+++++ ONLINE FRIENDS +++++++" + arr[0]);
+									onlineFriends[noOfOnlineFriends++] = arr[0];
+								}
+							}
+
 						} catch (Exception e) {
 							e.printStackTrace();
 						}
@@ -404,9 +439,25 @@ public class Clientt extends JFrame {
 					btnSendFriendrequest.setEnabled(true);
 				else
 					btnSendFriendrequest.setEnabled(false);
+
+				if (noOfOnlineFriends > 0) {
+					list_1.setEnabled(true);
+					btnSendMsg.setEnabled(true);
+					button_2.setEnabled(true);
+				} else {
+					list_1.setEnabled(false);
+					btnSendMsg.setEnabled(false);
+					button_2.setEnabled(false);
+				}
+
 				anonymous.removeAllElements();
 				for (int j = 0; j < noOfAnonymousUsers; j++) {
 					anonymous.addElement(onlineAnonymousUsers[j]);
+				}
+
+				onlineFrnds.removeAllElements();
+				for (int j = 0; j < noOfOnlineFriends; j++) {
+					onlineFrnds.addElement(onlineFriends[j]);
 				}
 
 				frndRqst.removeAllElements();
@@ -421,7 +472,9 @@ public class Clientt extends JFrame {
 					btnAccept.setEnabled(true);
 					btnReject.setEnabled(true);
 				}
-			} else if (message.indexOf("[") != -1) {
+			}
+
+			else if (message.indexOf("[") != -1) {
 				System.out.println("CLIENT: Paichi Request...");
 				showMessage(" " + message.substring(1));
 				friendRequests[noOfFriendRequests] = message.substring(1);
@@ -439,7 +492,7 @@ public class Clientt extends JFrame {
 				}
 			} else if (message != null)
 				showMessage("\n" + message);
-		} while (!message.equals("SERVER: END"));
+		} while (message!=null && !message.equals("SERVER: END"));
 	}
 
 	// Turn the text field editable
@@ -474,6 +527,7 @@ public class Clientt extends JFrame {
 				list_2.setEnabled(true);
 				btnRefresh.setEnabled(true);
 				list_3.setEnabled(true);
+				list_1.setEnabled(true);
 				btnAccept.setEnabled(true);
 				btnReject.setEnabled(true);
 			}
@@ -496,15 +550,16 @@ public class Clientt extends JFrame {
 	// Send message to Server
 	private void sendMessage(String message, char mode) throws IOException {
 		if (mode == 's') {
-			pr.println("CLIENT: #" + message);
+			pr.println("CLIENT: #" + message+"\n");
 			pr.flush();
 		} else if (mode == 'l') {
-			pr.println("CLIENT: $" + message);
+			pr.println("CLIENT: $" + message+"\n");
 			pr.flush();
 		} else {
-			pr.println("CLIENT: " + message);
+			pr.println(message);
 			pr.flush();
-			showMessage("\nCLIENT: " + message);
+			if(name == null) showMessage("\nCLIENT: " + message);
+			else showMessage("\n"+ name.toUpperCase() + message);
 		}
 	}
 
